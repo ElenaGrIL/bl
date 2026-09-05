@@ -1,14 +1,12 @@
 (function () {
 'use strict';
 
-if (window.plugin_bl2_bldub_v2) return;
-window.plugin_bl2_bldub_v2 = true;
-
+if (window.plugin_bl2_bldub_v3) return;
+window.plugin_bl2_bldub_v3 = true;
 
 var API =
     'https://bldub.com/api/v3/index.php?' +
     'a=GetTitles&limit=8&sort=0';
-
 
 var ICON =
     '<svg viewBox="0 0 24 24" fill="currentColor">' +
@@ -25,23 +23,8 @@ function convertItem(item) {
 
     var d = item.data || {};
 
-    var rating = 0;
-
-    if (
-        item.rating &&
-        item.rating.avg
-    ) {
-        rating =
-            Number(
-                item.rating.avg
-            );
-    }
-
-
     return {
-
-        id:
-            item.id,
+        id: item.id,
 
         bldub_id:
             item.id,
@@ -62,37 +45,31 @@ function convertItem(item) {
         year:
             d.year || '',
 
+        description:
+            d.description || '',
+
         country:
             d.country || '',
 
         genre:
             d.genre || '',
 
-        description:
-            d.description || '',
-
-        overview:
-            d.description || '',
-
         status:
             d.status || '',
-
-        type:
-            d.type || '',
 
         episodes:
             d.episodes ||
             item.episodes ||
             '',
 
-        premium:
-            d.premium || '',
-
         translations:
             item.translations || [],
 
         vote_average:
-            rating,
+            item.rating &&
+            item.rating.avg
+                ? Number(item.rating.avg)
+                : 0,
 
         img:
             d.image || '',
@@ -105,235 +82,73 @@ function convertItem(item) {
 
         bldub_url:
             'https://bldub.com/title/' +
-            item.id,
-
-        source:
-            'bldub'
+            item.id
     };
 }
 
 
-function escapeHtml(text) {
+function openBLDUB(item) {
 
-    return String(text || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+    var url =
+        item.bldub_url;
+
+    Lampa.Noty.show(
+        'Открываю BLDUB...'
+    );
+
+    /*
+       На webOS/LG пробуем открыть
+       страницу сайта как внешний URL.
+    */
+
+    try {
+
+        if (
+            window.webOS &&
+            window.webOS.service
+        ) {
+
+            window.open(
+                url,
+                '_blank'
+            );
+
+            return;
+        }
+
+    } catch (e) {}
 
 
-function showDetails(item) {
+    try {
 
-    var translation = '';
+        var opened =
+            window.open(
+                url,
+                '_blank'
+            );
 
-    if (
-        item.translations &&
-        item.translations.length
-    ) {
-        translation =
-            item.translations.join(', ');
+        if (opened) {
+            return;
+        }
+
+    } catch (e) {}
+
+
+    /*
+       Запасной вариант.
+    */
+
+    try {
+
+        window.location.href =
+            url;
+
+    } catch (e) {
+
+        Lampa.Noty.show(
+            'Не удалось открыть BLDUB'
+        );
     }
-
-
-    var rating = '';
-
-    if (item.vote_average) {
-
-        rating =
-            Number(
-                item.vote_average
-            ).toFixed(1);
-    }
-
-
-    var html = '';
-
-    html +=
-        '<div style="' +
-        'padding:1.2em;' +
-        'line-height:1.5;' +
-        'font-size:1.05em;">';
-
-
-    if (item.img) {
-
-        html +=
-            '<div style="' +
-            'display:flex;' +
-            'gap:1.2em;' +
-            'align-items:flex-start;">';
-
-
-        html +=
-            '<img src="' +
-            escapeHtml(item.img) +
-            '" style="' +
-            'width:11em;' +
-            'max-height:16em;' +
-            'object-fit:cover;' +
-            'border-radius:.5em;">';
-
-
-        html +=
-            '<div>';
-    }
-
-
-    if (item.original_title) {
-
-        html +=
-            '<div><b>Оригинальное:</b> ' +
-            escapeHtml(
-                item.original_title
-            ) +
-            '</div>';
-    }
-
-
-    if (item.year) {
-
-        html +=
-            '<div><b>Год:</b> ' +
-            escapeHtml(
-                item.year
-            ) +
-            '</div>';
-    }
-
-
-    if (item.country) {
-
-        html +=
-            '<div><b>Страна:</b> ' +
-            escapeHtml(
-                item.country
-            ) +
-            '</div>';
-    }
-
-
-    if (item.type) {
-
-        html +=
-            '<div><b>Тип:</b> ' +
-            escapeHtml(
-                item.type
-            ) +
-            '</div>';
-    }
-
-
-    if (item.genre) {
-
-        html +=
-            '<div><b>Жанр:</b> ' +
-            escapeHtml(
-                item.genre
-            ) +
-            '</div>';
-    }
-
-
-    if (item.status) {
-
-        html +=
-            '<div><b>Статус:</b> ' +
-            escapeHtml(
-                item.status
-            ) +
-            '</div>';
-    }
-
-
-    if (item.episodes) {
-
-        html +=
-            '<div><b>Серий:</b> ' +
-            escapeHtml(
-                item.episodes
-            ) +
-            '</div>';
-    }
-
-
-    if (translation) {
-
-        html +=
-            '<div><b>Перевод:</b> ' +
-            escapeHtml(
-                translation
-            ) +
-            '</div>';
-    }
-
-
-    if (rating) {
-
-        html +=
-            '<div><b>Рейтинг:</b> ' +
-            escapeHtml(
-                rating
-            ) +
-            '</div>';
-    }
-
-
-    html +=
-        '<div><b>BLDUB ID:</b> ' +
-        escapeHtml(
-            item.bldub_id
-        ) +
-        '</div>';
-
-
-    if (item.img) {
-
-        html +=
-            '</div></div>';
-    }
-
-
-    if (item.description) {
-
-        html +=
-            '<div style="' +
-            'margin-top:1.2em;' +
-            'font-size:.95em;">' +
-
-            escapeHtml(
-                item.description
-            ) +
-
-            '</div>';
-    }
-
-
-    html += '</div>';
-
-
-    Lampa.Modal.open({
-
-        title:
-            item.title,
-
-        html:
-            $(html),
-
-        size:
-            'medium',
-
-        onBack:
-            function () {
-
-                Lampa.Modal.close();
-
-                Lampa.Controller.toggle(
-                    'content'
-                );
-            }
-    });
 }
 
 
@@ -357,7 +172,6 @@ function BL2(object) {
                 self.activity
                     .loader(true);
 
-
                 var network =
                     new Lampa.Reguest();
 
@@ -371,9 +185,7 @@ function BL2(object) {
                         self.activity
                             .loader(false);
 
-
                         var results = [];
-
 
                         if (
                             json &&
@@ -404,14 +216,8 @@ function BL2(object) {
                                     results,
 
                                 params: {
-
                                     items: {
                                         view: 7
-                                    },
-
-                                    style: {
-                                        name:
-                                            'wide'
                                     }
                                 }
                             }
@@ -449,7 +255,7 @@ function BL2(object) {
                                 onlyEnter:
                                     function () {
 
-                                        showDetails(
+                                        openBLDUB(
                                             cardData
                                         );
                                     },
@@ -502,7 +308,7 @@ function addButton() {
 
     if (
         menu.find(
-            '[data-sid="bl2-bldub-v2"]'
+            '[data-sid="bl2-bldub-v3"]'
         ).length
     ) {
         return;
@@ -513,8 +319,8 @@ function addButton() {
 
         '<li ' +
         'class="menu__item selector" ' +
-        'data-action="bl2_bldub_v2" ' +
-        'data-sid="bl2-bldub-v2">' +
+        'data-action="bl2_bldub_v3" ' +
+        'data-sid="bl2-bldub-v3">' +
 
         '<div class="menu__ico">' +
         ICON +
@@ -529,7 +335,6 @@ function addButton() {
 
 
     button.on(
-
         'hover:enter',
 
         function () {
@@ -540,7 +345,7 @@ function addButton() {
                     'BL2 · BLDUB',
 
                 component:
-                    'bl2_bldub_v2'
+                    'bl2_bldub_v3'
             });
         }
     );
@@ -555,16 +360,14 @@ function addButton() {
 function startPlugin() {
 
     Lampa.Component.add(
-        'bl2_bldub_v2',
+        'bl2_bldub_v3',
         BL2
     );
-
 
     addButton();
 
 
     setInterval(
-
         function () {
 
             if (
@@ -586,7 +389,6 @@ if (window.appready) {
 } else {
 
     Lampa.Listener.follow(
-
         'app',
 
         function (e) {
