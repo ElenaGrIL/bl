@@ -1,33 +1,23 @@
 (function () {
   'use strict';
 
-  if (window.bl_catalog_v2) return;
-  window.bl_catalog_v2 = true;
+  if (window.bl_catalog_v3) return;
+  window.bl_catalog_v3 = true;
 
   var BL_KEYWORD = '289844';
 
-  function buildUrl(extra) {
-    var url =
-      'discover/tv?' +
-      'with_keywords=' + BL_KEYWORD +
-      '&language=ru-RU';
-
-    if (extra) url += '&' + extra;
-
-    return url;
-  }
-
-  function openFull(title, extra) {
+  function openFull(title, params) {
     Lampa.Activity.push({
       title: title,
       component: 'category_full',
       source: 'tmdb',
-      url: buildUrl(extra),
-      page: 1
+      url: 'discover/tv',
+      page: 1,
+      params: params
     });
   }
 
-  function showMenu() {
+  function showBLMenu() {
     Lampa.Select.show({
       title: '❤️ BL',
 
@@ -51,34 +41,49 @@
       ],
 
       onSelect: function (item) {
-
         if (item.action === 'new') {
           openFull(
             '🔥 Новые BL',
-            'sort_by=first_air_date.desc'
+            {
+              with_keywords: BL_KEYWORD,
+              sort_by: 'first_air_date.desc',
+              language: 'ru-RU'
+            }
           );
         }
 
         if (item.action === '2026') {
           openFull(
             '🆕 BL 2026',
-            'first_air_date.gte=2026-01-01' +
-            '&first_air_date.lte=2026-12-31' +
-            '&sort_by=popularity.desc'
+            {
+              with_keywords: BL_KEYWORD,
+              'first_air_date.gte': '2026-01-01',
+              'first_air_date.lte': '2026-12-31',
+              sort_by: 'popularity.desc',
+              language: 'ru-RU'
+            }
           );
         }
 
         if (item.action === 'popular') {
           openFull(
             '⭐ Популярные BL',
-            'sort_by=popularity.desc'
+            {
+              with_keywords: BL_KEYWORD,
+              sort_by: 'popularity.desc',
+              language: 'ru-RU'
+            }
           );
         }
 
         if (item.action === 'all') {
           openFull(
             '❤️ Все BL',
-            'sort_by=vote_count.desc'
+            {
+              with_keywords: BL_KEYWORD,
+              sort_by: 'vote_count.desc',
+              language: 'ru-RU'
+            }
           );
         }
       },
@@ -99,17 +104,22 @@
 
     if (
       menu.find(
-        '[data-action="bl_catalog_v2"]'
+        '[data-action="bl_catalog_v3"]'
       ).length
-    ) return;
+    ) {
+      return;
+    }
 
     var button = $(
       '<li class="menu__item selector" ' +
-      'data-action="bl_catalog_v2">' +
+      'data-action="bl_catalog_v3">' +
 
         '<div class="menu__ico">' +
+
           '<svg viewBox="0 0 24 24">' +
-            '<path fill="currentColor" ' +
+
+            '<path ' +
+            'fill="currentColor" ' +
             'd="M12 21.35l-1.45-1.32' +
             'C5.4 15.36 2 12.28 2 8.5' +
             'C2 5.42 4.42 3 7.5 3' +
@@ -118,10 +128,14 @@
             'C19.58 3 22 5.42 22 8.5' +
             'c0 3.78-3.4 6.86-8.55 11.54' +
             'L12 21.35z"/>' +
+
           '</svg>' +
+
         '</div>' +
 
-        '<div class="menu__text">BL</div>' +
+        '<div class="menu__text">' +
+          'BL' +
+        '</div>' +
 
       '</li>'
     );
@@ -129,16 +143,19 @@
     button.on(
       'hover:enter',
       function () {
-        showMenu();
+        showBLMenu();
       }
     );
 
     menu.append(button);
   }
 
-  if (window.appready) {
-    addButton();
-  } else {
+  function startPlugin() {
+    if (window.appready) {
+      addButton();
+      return;
+    }
+
     Lampa.Listener.follow(
       'app',
       function (e) {
@@ -148,5 +165,7 @@
       }
     );
   }
+
+  startPlugin();
 
 })();
