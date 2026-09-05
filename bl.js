@@ -1,6 +1,9 @@
 (function () {
 'use strict';
 
+if (window.plugin_bl_ready_v20) return;
+window.plugin_bl_ready_v20 = true;
+
 var BL_CONFIG = {
     bl: {
         title: 'BL',
@@ -18,16 +21,15 @@ var BL_CONFIG = {
         categories: [
             {
                 title: '🔥 Новые BL',
-                url: 'discover/tv',
                 params: {
                     with_keywords: '289844',
                     sort_by: 'first_air_date.desc',
                     'first_air_date.lte': '{current_date}'
                 }
             },
+
             {
                 title: '🆕 BL 2026',
-                url: 'discover/tv',
                 params: {
                     with_keywords: '289844',
                     'first_air_date.gte': '2026-01-01',
@@ -35,17 +37,17 @@ var BL_CONFIG = {
                     sort_by: 'popularity.desc'
                 }
             },
+
             {
                 title: '⭐ Популярные BL',
-                url: 'discover/tv',
                 params: {
                     with_keywords: '289844',
                     sort_by: 'popularity.desc'
                 }
             },
+
             {
                 title: '❤️ Все BL',
-                url: 'discover/tv',
                 params: {
                     with_keywords: '289844',
                     sort_by: 'vote_count.desc'
@@ -56,276 +58,126 @@ var BL_CONFIG = {
 };
 
 
-function BLMain(object) {
+function currentDate() {
+    var d = new Date();
 
-    var comp =
-        new Lampa.InteractionMain(object);
-
-    var config =
-        BL_CONFIG[object.service_id];
-
-    comp.create = function () {
-
-        var _this = this;
-
-        this.activity.loader(true);
-
-        var categories =
-            config.categories;
-
-        var network =
-            new Lampa.Reguest();
-
-        var status =
-            new Lampa.Status(
-                categories.length
-            );
-
-        status.onComplite =
-            function () {
-
-                var fulldata = [];
-
-                Object.keys(status.data)
-                    .sort(function (a, b) {
-                        return a - b;
-                    })
-                    .forEach(function (key) {
-
-                        var data =
-                            status.data[key];
-
-                        if (
-                            data &&
-                            data.results &&
-                            data.results.length
-                        ) {
-
-                            var cat =
-                                categories[
-                                    parseInt(key)
-                                ];
-
-                            Lampa.Utils
-                                .extendItemsParams(
-                                    data.results,
-                                    {
-                                        style: {
-                                            name: 'wide'
-                                        }
-                                    }
-                                );
-
-                            fulldata.push({
-                                title: cat.title,
-                                results: data.results,
-                                url: cat.url,
-                                params: cat.params,
-                                service_id:
-                                    object.service_id
-                            });
-                        }
-                    });
-
-                if (fulldata.length) {
-
-                    _this.build(fulldata);
-
-                    _this.activity
-                        .loader(false);
-
-                } else {
-
-                    _this.empty();
-                }
-            };
-
-
-        categories.forEach(
-            function (cat, index) {
-
-                var params = [];
-
-                params.push(
-                    'api_key=' +
-                    Lampa.TMDB.key()
-                );
-
-                params.push(
-                    'language=' +
-                    Lampa.Storage.get(
-                        'language',
-                        'ru'
-                    )
-                );
-
-                if (cat.params) {
-
-                    for (
-                        var key in cat.params
-                    ) {
-
-                        var val =
-                            cat.params[key];
-
-                        if (
-                            val ===
-                            '{current_date}'
-                        ) {
-
-                            var d =
-                                new Date();
-
-                            val = [
-                                d.getFullYear(),
-                                (
-                                    '0' +
-                                    (
-                                        d.getMonth()
-                                        + 1
-                                    )
-                                ).slice(-2),
-                                (
-                                    '0' +
-                                    d.getDate()
-                                ).slice(-2)
-                            ].join('-');
-                        }
-
-                        params.push(
-                            key +
-                            '=' +
-                            val
-                        );
-                    }
-                }
-
-                var url =
-                    Lampa.TMDB.api(
-                        cat.url +
-                        '?' +
-                        params.join('&')
-                    );
-
-                network.silent(
-                    url,
-
-                    function (json) {
-
-                        status.append(
-                            index.toString(),
-                            json
-                        );
-                    },
-
-                    function () {
-
-                        status.error();
-                    }
-                );
-            }
-        );
-
-        return this.render();
-    };
-
-
-    comp.onMore =
-        function (data) {
-
-            Lampa.Activity.push({
-                url: data.url,
-                params: data.params,
-                title: data.title,
-                component: 'bl_view',
-                page: 1
-            });
-        };
-
-    return comp;
+    return [
+        d.getFullYear(),
+        ('0' + (d.getMonth() + 1)).slice(-2),
+        ('0' + d.getDate()).slice(-2)
+    ].join('-');
 }
 
 
-function BLView(object) {
+function makeUrl(params, page) {
+
+    var query = [];
+
+    query.push(
+        'api_key=' +
+        encodeURIComponent(
+            Lampa.TMDB.key()
+        )
+    );
+
+    query.push(
+        'language=ru-RU'
+    );
+
+    query.push(
+        'include_adult=false'
+    );
+
+    query.push(
+        'page=' +
+        (page || 1)
+    );
+
+
+    for (var key in params) {
+
+        var value =
+            params[key];
+
+        if (
+            value ===
+            '{current_date}'
+        ) {
+            value =
+                currentDate();
+        }
+
+        query.push(
+            encodeURIComponent(key) +
+            '=' +
+            encodeURIComponent(value)
+        );
+    }
+
+
+    return Lampa.TMDB.api(
+        'discover/tv?' +
+        query.join('&')
+    );
+}
+
+
+function loadPage(
+    params,
+    page,
+    success,
+    error
+) {
+
+    var network =
+        new Lampa.Reguest();
+
+    network.silent(
+        makeUrl(
+            params,
+            page
+        ),
+
+        function (json) {
+
+            if (
+                json &&
+                json.results
+            ) {
+
+                json.results
+                    .forEach(
+                        function (item) {
+                            item.source =
+                                'tmdb';
+                        }
+                    );
+            }
+
+            success(json);
+        },
+
+        function () {
+
+            if (error)
+                error();
+        }
+    );
+}
+
+
+/* =========================
+   ПОЛНЫЙ КАТАЛОГ
+   ========================= */
+
+function BLFull(object) {
 
     var comp =
         new Lampa.InteractionCategory(
             object
         );
 
-    var network =
-        new Lampa.Reguest();
-
-
-    function buildUrl(page) {
-
-        var params = [];
-
-        params.push(
-            'api_key=' +
-            Lampa.TMDB.key()
-        );
-
-        params.push(
-            'language=' +
-            Lampa.Storage.get(
-                'language',
-                'ru'
-            )
-        );
-
-        params.push(
-            'page=' + page
-        );
-
-
-        if (object.params) {
-
-            for (
-                var key in object.params
-            ) {
-
-                var val =
-                    object.params[key];
-
-                if (
-                    val ===
-                    '{current_date}'
-                ) {
-
-                    var d =
-                        new Date();
-
-                    val = [
-                        d.getFullYear(),
-                        (
-                            '0' +
-                            (
-                                d.getMonth()
-                                + 1
-                            )
-                        ).slice(-2),
-                        (
-                            '0' +
-                            d.getDate()
-                        ).slice(-2)
-                    ].join('-');
-                }
-
-                params.push(
-                    key +
-                    '=' +
-                    val
-                );
-            }
-        }
-
-        return Lampa.TMDB.api(
-            object.url +
-            '?' +
-            params.join('&')
-        );
-    }
+    var page = 1;
 
 
     comp.create =
@@ -333,157 +185,385 @@ function BLView(object) {
 
             var _this = this;
 
-            network.silent(
-                buildUrl(1),
+            this.activity
+                .loader(true);
+
+            loadPage(
+                object.bl_params,
+                1,
 
                 function (json) {
-                    _this.build(json);
+
+                    _this.activity
+                        .loader(false);
+
+                    _this.build(
+                        json
+                    );
                 },
 
-                this.empty.bind(this)
+                function () {
+
+                    _this.activity
+                        .loader(false);
+
+                    _this.empty();
+                }
             );
+
+            return this.render();
         };
 
 
     comp.nextPageReuest =
         function (
-            object,
+            next,
             resolve,
             reject
         ) {
 
-            network.silent(
-                buildUrl(object.page),
+            page =
+                next.page || page + 1;
+
+            loadPage(
+                object.bl_params,
+                page,
                 resolve,
                 reject
             );
         };
 
+
     return comp;
 }
 
 
+/* =========================
+   ГЛАВНЫЙ ЭКРАН BL
+   ========================= */
+
+function BLMain(object) {
+
+    var comp =
+        Lampa.Maker.make(
+            'Main',
+            object
+        );
+
+
+    comp.use({
+
+        onCreate: function () {
+
+            var _this = this;
+
+            this.activity
+                .loader(true);
+
+            var rows = [];
+
+            var completed = 0;
+
+
+            BL_CONFIG.bl.categories
+                .forEach(
+                    function (
+                        category,
+                        index
+                    ) {
+
+                        loadPage(
+                            category.params,
+                            1,
+
+                            function (json) {
+
+                                var results =
+                                    json.results ||
+                                    [];
+
+
+                                rows[index] = {
+
+                                    title:
+                                        category.title,
+
+                                    results:
+                                        results,
+
+                                    bl_title:
+                                        category.title,
+
+                                    bl_params:
+                                        category.params,
+
+                                    page:
+                                        json.page || 1,
+
+                                    total_pages:
+                                        json.total_pages || 1,
+
+                                    total_results:
+                                        json.total_results || 0,
+
+                                    params: {
+                                        items: {
+                                            view: 7
+                                        }
+                                    }
+                                };
+
+
+                                completed++;
+
+                                if (
+                                    completed ===
+                                    BL_CONFIG
+                                        .bl
+                                        .categories
+                                        .length
+                                ) {
+
+                                    _this.activity
+                                        .loader(false);
+
+                                    _this.build(
+                                        rows.filter(
+                                            Boolean
+                                        )
+                                    );
+                                }
+                            },
+
+                            function () {
+
+                                completed++;
+
+                                if (
+                                    completed ===
+                                    BL_CONFIG
+                                        .bl
+                                        .categories
+                                        .length
+                                ) {
+
+                                    _this.activity
+                                        .loader(false);
+
+                                    _this.build(
+                                        rows.filter(
+                                            Boolean
+                                        )
+                                    );
+                                }
+                            }
+                        );
+                    }
+                );
+        },
+
+
+        onInstance:
+            function (
+                line,
+                data
+            ) {
+
+                line.use({
+
+                    onMore:
+                        function () {
+
+                            Lampa.Activity
+                                .push({
+
+                                    title:
+                                        data.bl_title,
+
+                                    component:
+                                        'bl_full_v20',
+
+                                    bl_params:
+                                        data.bl_params,
+
+                                    page: 1
+                                });
+                        },
+
+
+                    onInstance:
+                        function (
+                            card,
+                            cardData
+                        ) {
+
+                            card.use({
+
+                                onEnter:
+                                    function () {
+
+                                        Lampa.Router
+                                            .call(
+                                                'full',
+                                                cardData
+                                            );
+                                    },
+
+                                onFocus:
+                                    function () {
+
+                                        if (
+                                            Lampa.Background &&
+                                            Lampa.Utils
+                                                .cardImgBackground
+                                        ) {
+
+                                            Lampa.Background
+                                                .change(
+                                                    Lampa.Utils
+                                                        .cardImgBackground(
+                                                            cardData
+                                                        )
+                                                );
+                                        }
+                                    }
+                            });
+                        }
+                });
+            }
+    });
+
+
+    return comp;
+}
+
+
+/* =========================
+   КНОПКА BL
+   ========================= */
+
+function addMenuButton() {
+
+    var menu =
+        $('.menu .menu__list')
+            .eq(0);
+
+    if (!menu.length) {
+
+        setTimeout(
+            addMenuButton,
+            500
+        );
+
+        return;
+    }
+
+
+    if (
+        menu.find(
+            '.menu__item[data-sid="bl-v20"]'
+        ).length
+    ) return;
+
+
+    var btn = $(
+
+        '<li ' +
+        'class="menu__item selector" ' +
+        'data-action="bl_action_v20" ' +
+        'data-sid="bl-v20">' +
+
+        '<div class="menu__ico">' +
+        BL_CONFIG.bl.icon +
+        '</div>' +
+
+        '<div class="menu__text">' +
+        'BL' +
+        '</div>' +
+
+        '</li>'
+    );
+
+
+    btn.on(
+        'hover:enter',
+
+        function () {
+
+            Lampa.Activity
+                .push({
+
+                    title: 'BL',
+
+                    component:
+                        'bl_main_v20',
+
+                    page: 1
+                });
+        }
+    );
+
+
+    menu.append(btn);
+}
+
+
+/* =========================
+   ЗАПУСК
+   ========================= */
+
 function startPlugin() {
 
-    if (window.plugin_bl_ready)
-        return;
-
-    window.plugin_bl_ready = true;
-
-
     Lampa.Component.add(
-        'bl_main',
+        'bl_main_v20',
         BLMain
     );
 
     Lampa.Component.add(
-        'bl_view',
-        BLView
+        'bl_full_v20',
+        BLFull
     );
 
 
-    function addMenuButton() {
-
-        var menu =
-            $('.menu .menu__list')
-                .eq(0);
-
-        if (!menu.length)
-            return;
-
-
-        if (
-            menu.find(
-                '.menu__item[data-sid="bl"]'
-            ).length
-        )
-            return;
-
-
-        var btn = $(
-            '<li ' +
-            'class="menu__item selector" ' +
-            'data-action="bl_action" ' +
-            'data-sid="bl">' +
-
-            '<div class="menu__ico">' +
-            BL_CONFIG.bl.icon +
-            '</div>' +
-
-            '<div class="menu__text">' +
-            BL_CONFIG.bl.title +
-            '</div>' +
-
-            '</li>'
-        );
-
-
-        btn.on(
-            'hover:enter',
-            function () {
-
-                Lampa.Activity.push({
-                    title:
-                        BL_CONFIG.bl.title,
-
-                    component:
-                        'bl_main',
-
-                    service_id:
-                        'bl',
-
-                    page: 1
-                });
-            }
-        );
-
-
-        menu.append(btn);
-    }
-
-
-    if (window.appready) {
-
-        addMenuButton();
-
-    } else {
-
-        Lampa.Listener.follow(
-            'app',
-            function (e) {
-
-                if (
-                    e.type == 'ready'
-                ) {
-
-                    addMenuButton();
-                }
-            }
-        );
-    }
+    addMenuButton();
 
 
     setInterval(
         function () {
 
             if (
-                window.appready &&
-                $('.menu .menu__list')
-                    .eq(0)
-                    .length
+                window.appready
             ) {
 
                 addMenuButton();
             }
-
         },
+
         4000
     );
 }
 
 
-if (!window.plugin_bl_ready) {
+if (window.appready) {
+
     startPlugin();
+
+} else {
+
+    Lampa.Listener.follow(
+        'app',
+
+        function (e) {
+
+            if (
+                e.type ===
+                'ready'
+            ) {
+
+                startPlugin();
+            }
+        }
+    );
 }
 
 })();
