@@ -1,290 +1,68 @@
 (function () {
 'use strict';
 
-if (window.plugin_bl2_bldub_v3) return;
-window.plugin_bl2_bldub_v3 = true;
+if (window.plugin_bl2_player_test) return;
+window.plugin_bl2_player_test = true;
 
-var API =
-    'https://bldub.com/api/v3/index.php?' +
-    'a=GetTitles&limit=8&sort=0';
+var PLAYER_URL =
+    'https://bg.doramia.one/play/newplayer.php?' +
+    'file=1653b356-7c50-11f1-9905-c4346bb0f228' +
+    '&key=c743bad3597ee64fe0da71782911df82' +
+    '&hash=7ddc803904bfb505969dd0ccbb6fa7ef57f5130eac9ce58649b68a70b0ae1414' +
+    '&p=' +
+    '&i=70426';
+
 
 var ICON =
     '<svg viewBox="0 0 24 24" fill="currentColor">' +
-    '<path d="M12 21.35l-1.45-1.32C5.4 15.36 ' +
-    '2 12.28 2 8.5 2 5.42 4.42 3 7.5 3' +
-    'c1.74 0 3.41.81 4.5 2.09' +
-    'C13.09 3.81 14.76 3 16.5 3' +
-    '19.58 3 22 5.42 22 8.5' +
-    'c0 3.78-3.4 6.86-8.55 11.54' +
-    'L12 21.35z"/></svg>';
+    '<path d="M8 5v14l11-7z"/>' +
+    '</svg>';
 
 
-function convertItem(item) {
+function openPlayer() {
 
-    var d = item.data || {};
+    var html =
+        '<div style="' +
+        'width:100%;' +
+        'height:75vh;' +
+        'background:#000;">' +
 
-    return {
-        id: item.id,
+        '<iframe ' +
+        'src="' + PLAYER_URL + '" ' +
+        'style="' +
+        'width:100%;' +
+        'height:100%;' +
+        'border:0;' +
+        'background:#000;" ' +
+        'allow="autoplay; fullscreen; encrypted-media" ' +
+        'allowfullscreen>' +
 
-        bldub_id:
-            item.id,
+        '</iframe>' +
+
+        '</div>';
+
+
+    Lampa.Modal.open({
 
         title:
-            d.name ||
-            d.aka ||
-            'Без названия',
+            '▶ Тест BLDUB',
 
-        name:
-            d.name ||
-            d.aka ||
-            'Без названия',
+        html:
+            $(html),
 
-        original_title:
-            d.aka || '',
+        size:
+            'large',
 
-        year:
-            d.year || '',
-
-        description:
-            d.description || '',
-
-        country:
-            d.country || '',
-
-        genre:
-            d.genre || '',
-
-        status:
-            d.status || '',
-
-        episodes:
-            d.episodes ||
-            item.episodes ||
-            '',
-
-        translations:
-            item.translations || [],
-
-        vote_average:
-            item.rating &&
-            item.rating.avg
-                ? Number(item.rating.avg)
-                : 0,
-
-        img:
-            d.image || '',
-
-        poster:
-            d.image || '',
-
-        background_image:
-            d.image || '',
-
-        bldub_url:
-            'https://bldub.com/title/' +
-            item.id
-    };
-}
-
-
-function openBLDUB(item) {
-
-    var url =
-        item.bldub_url;
-
-    Lampa.Noty.show(
-        'Открываю BLDUB...'
-    );
-
-    /*
-       На webOS/LG пробуем открыть
-       страницу сайта как внешний URL.
-    */
-
-    try {
-
-        if (
-            window.webOS &&
-            window.webOS.service
-        ) {
-
-            window.open(
-                url,
-                '_blank'
-            );
-
-            return;
-        }
-
-    } catch (e) {}
-
-
-    try {
-
-        var opened =
-            window.open(
-                url,
-                '_blank'
-            );
-
-        if (opened) {
-            return;
-        }
-
-    } catch (e) {}
-
-
-    /*
-       Запасной вариант.
-    */
-
-    try {
-
-        window.location.href =
-            url;
-
-    } catch (e) {
-
-        Lampa.Noty.show(
-            'Не удалось открыть BLDUB'
-        );
-    }
-}
-
-
-function BL2(object) {
-
-    var comp =
-        Lampa.Maker.make(
-            'Main',
-            object
-        );
-
-
-    comp.use({
-
-        onCreate:
+        onBack:
             function () {
 
-                var self =
-                    this;
+                Lampa.Modal.close();
 
-                self.activity
-                    .loader(true);
-
-                var network =
-                    new Lampa.Reguest();
-
-
-                network.silent(
-
-                    API,
-
-                    function (json) {
-
-                        self.activity
-                            .loader(false);
-
-                        var results = [];
-
-                        if (
-                            json &&
-                            json.result
-                        ) {
-
-                            results =
-                                json.result.map(
-                                    convertItem
-                                );
-                        }
-
-
-                        if (!results.length) {
-
-                            self.empty();
-
-                            return;
-                        }
-
-
-                        self.build([
-                            {
-                                title:
-                                    '❤️ BLDUB',
-
-                                results:
-                                    results,
-
-                                params: {
-                                    items: {
-                                        view: 7
-                                    }
-                                }
-                            }
-                        ]);
-                    },
-
-
-                    function () {
-
-                        self.activity
-                            .loader(false);
-
-                        self.empty();
-                    }
+                Lampa.Controller.toggle(
+                    'content'
                 );
-            },
-
-
-        onInstance:
-            function (
-                line,
-                lineData
-            ) {
-
-                line.use({
-
-                    onInstance:
-                        function (
-                            card,
-                            cardData
-                        ) {
-
-                            card.use({
-
-                                onlyEnter:
-                                    function () {
-
-                                        openBLDUB(
-                                            cardData
-                                        );
-                                    },
-
-
-                                onFocus:
-                                    function () {
-
-                                        if (
-                                            cardData
-                                                .background_image &&
-                                            Lampa.Background
-                                        ) {
-
-                                            Lampa.Background
-                                                .change(
-                                                    cardData
-                                                        .background_image
-                                                );
-                                        }
-                                    }
-                            });
-                        }
-                });
             }
     });
-
-
-    return comp;
 }
 
 
@@ -308,7 +86,7 @@ function addButton() {
 
     if (
         menu.find(
-            '[data-sid="bl2-bldub-v3"]'
+            '[data-sid="bl2-player-test"]'
         ).length
     ) {
         return;
@@ -319,8 +97,8 @@ function addButton() {
 
         '<li ' +
         'class="menu__item selector" ' +
-        'data-action="bl2_bldub_v3" ' +
-        'data-sid="bl2-bldub-v3">' +
+        'data-action="bl2_player_test" ' +
+        'data-sid="bl2-player-test">' +
 
         '<div class="menu__ico">' +
         ICON +
@@ -339,14 +117,7 @@ function addButton() {
 
         function () {
 
-            Lampa.Activity.push({
-
-                title:
-                    'BL2 · BLDUB',
-
-                component:
-                    'bl2_bldub_v3'
-            });
+            openPlayer();
         }
     );
 
@@ -359,20 +130,12 @@ function addButton() {
 
 function startPlugin() {
 
-    Lampa.Component.add(
-        'bl2_bldub_v3',
-        BL2
-    );
-
     addButton();
-
 
     setInterval(
         function () {
 
-            if (
-                window.appready
-            ) {
+            if (window.appready) {
                 addButton();
             }
         },
